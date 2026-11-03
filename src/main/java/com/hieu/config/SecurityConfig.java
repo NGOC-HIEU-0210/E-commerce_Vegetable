@@ -49,7 +49,7 @@ public class SecurityConfig {
                         // ---- Sản phẩm ----
                         .requestMatchers(HttpMethod.GET, "/api/products").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/products/category/{categoryId}", "/api/products/search",
-                                "/api/products/latest", "/api/products/{id}").permitAll()
+                                "/api/products/latest", "/api/products/rescue", "/api/products/{id}").permitAll()
                         .requestMatchers("/api/products", "/api/products/**").hasAuthority("ADMIN")
 
                         // ---- Mã giảm giá ----

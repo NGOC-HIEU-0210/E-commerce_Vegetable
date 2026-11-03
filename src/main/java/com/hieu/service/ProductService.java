@@ -18,6 +18,8 @@ public interface ProductService {
 
     ProductDto findById(Long id);
 
+    java.util.List<ProductDto> findRescue();
+
     ProductDto create(ProductDto dto);
 
     ProductDto update(Long id, ProductDto dto);

@@ -22,6 +22,8 @@ public final class ProductMapper {
                 .image(product.getImage())
                 .price(product.getPrice())
                 .active(product.getActive())
+                .stock(product.getStock())
+                .shelfLifeDays(product.getShelfLifeDays())
                 .description(product.getDescription())
                 .categoryId(product.getCategory() == null ? null : product.getCategory().getId())
                 .categoryName(product.getCategory() == null ? null : product.getCategory().getName())

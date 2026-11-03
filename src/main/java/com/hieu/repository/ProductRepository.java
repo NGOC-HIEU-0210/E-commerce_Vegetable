@@ -33,10 +33,21 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Double sumPrices();
 
     @Modifying
-    @Query("UPDATE Product p SET p.stock = p.stock - :qty WHERE p.id = :id AND p.stock >= :qty")
+    @Query("UPDATE Product p SET p.stock = COALESCE(p.stock, 0) - :qty WHERE p.id = :id AND COALESCE(p.stock, 0) >= :qty")
     int decreaseStock(@Param("id") Long id, @Param("qty") int qty);
 
     @Modifying
-    @Query("UPDATE Product p SET p.stock = p.stock + :qty WHERE p.id = :id")
+    @Query("UPDATE Product p SET p.stock = COALESCE(p.stock, 0) + :qty WHERE p.id = :id")
     int increaseStock(@Param("id") Long id, @Param("qty") int qty);
+
+
+    @Modifying
+    @Query("UPDATE Product p SET p.stock = CASE WHEN COALESCE(p.stock, 0) >= :qty THEN COALESCE(p.stock, 0) - :qty ELSE 0 END WHERE p.id = :id")
+    int writeOffStock(@Param("id") Long id, @Param("qty") int qty);
+
+
+    @Query("SELECT p FROM Product p WHERE p.active = true AND EXISTS (SELECT 1 FROM ProductBatch b "
+            + "WHERE b.product = p AND b.status = :status AND b.remainingQuantity > 0 AND b.expiryDate >= :today)")
+    List<Product> findWithSellableBatches(@Param("status") com.hieu.enums.BatchStatus status,
+                                          @Param("today") java.time.LocalDate today);
 }

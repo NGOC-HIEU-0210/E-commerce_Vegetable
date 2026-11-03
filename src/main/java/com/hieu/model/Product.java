@@ -40,6 +40,8 @@ public class Product {
 
     private Integer stock;
 
+    private Integer shelfLifeDays;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     @JsonIgnore
@@ -53,6 +55,7 @@ public class Product {
     public void prePersist() {
         createdDate = LocalDateTime.now();
         if (active == null) active = true;
+        if (stock == null) stock = 0;
     }
 
     @PreUpdate

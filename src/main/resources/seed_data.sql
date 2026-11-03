@@ -165,3 +165,27 @@ UNION ALL SELECT 'tbl_order_status', COUNT(*) FROM tbl_order_status
 UNION ALL SELECT 'tbl_sale_order', COUNT(*) FROM tbl_sale_order
 UNION ALL SELECT 'tbl_sale_order_product', COUNT(*) FROM tbl_sale_order_product
 UNION ALL SELECT 'tbl_favourite', COUNT(*) FROM tbl_favourite;
+
+
+-- Hạn bảo quản mặc định (ngày) cho từng sản phẩm
+UPDATE tbl_product SET shelf_life_days = 5   WHERE id = 1;   -- cà tím
+UPDATE tbl_product SET shelf_life_days = 7   WHERE id = 2;   -- xoài
+UPDATE tbl_product SET shelf_life_days = 3   WHERE id = 3;   -- nước ép
+UPDATE tbl_product SET shelf_life_days = 180 WHERE id = 4;   -- snack
+UPDATE tbl_product SET shelf_life_days = 730 WHERE id = 5;   -- đồ gia dụng
+
+-- Các lô hàng (ngày tính theo hôm nay để dễ thử)
+INSERT INTO tbl_product_batch
+(product_id, initial_quantity, remaining_quantity, wasted_quantity, cost_price, received_date, expiry_date, status)
+VALUES
+    (1, 30, 30, 0, 15000, CURDATE() - INTERVAL 4 DAY, CURDATE() + INTERVAL 1 DAY, 'ACTIVE'),  -- sắp hỏng -> giảm 50%
+    (1, 40, 40, 0, 15000, CURDATE(),                  CURDATE() + INTERVAL 5 DAY, 'ACTIVE'),
+    (2, 50, 50, 0, 40000, CURDATE() - INTERVAL 3 DAY, CURDATE() + INTERVAL 3 DAY, 'ACTIVE'),  -- còn 3/7 ngày -> giảm 20%
+    (3, 20, 20, 0, 20000, CURDATE(),                  CURDATE() + INTERVAL 3 DAY, 'ACTIVE'),
+    (4, 100, 100, 0, 9000, CURDATE() - INTERVAL 10 DAY, CURDATE() + INTERVAL 170 DAY, 'ACTIVE'),
+    (5, 25, 25, 0, 80000, CURDATE() - INTERVAL 30 DAY, CURDATE() + INTERVAL 700 DAY, 'ACTIVE');
+
+-- Tồn kho tổng = tổng các lô còn lại
+UPDATE tbl_product p
+SET p.stock = (SELECT COALESCE(SUM(b.remaining_quantity), 0)
+               FROM tbl_product_batch b WHERE b.product_id = p.id AND b.status = 'ACTIVE');

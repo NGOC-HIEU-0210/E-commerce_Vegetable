@@ -38,6 +38,12 @@ public class ProductController {
         return ApiResponse.success(productService.findLatest(pageOf(page, size)));
     }
 
+    @GetMapping("/rescue")
+    @Operation(summary = "Giải cứu: hàng sắp hết hạn đang giảm giá, giảm nhiều nhất lên đầu")
+    public ApiResponse<java.util.List<ProductDto>> rescue() {
+        return ApiResponse.success(productService.findRescue());
+    }
+
     @GetMapping("/search")
     @Operation(summary = "Tìm kiếm sản phẩm theo tên và danh mục, phân trang")
     public ApiResponse<PageResponse<ProductDto>> search(

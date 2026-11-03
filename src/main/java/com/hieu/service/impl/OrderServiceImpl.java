@@ -9,7 +9,9 @@ import com.hieu.payload.dto.OrderTrackingDto;
 import com.hieu.payload.request.CheckoutRequest;
 import com.hieu.payload.response.PageResponse;
 import com.hieu.repository.*;
+import com.hieu.service.InventoryService;
 import com.hieu.service.OrderService;
+import com.hieu.service.PricingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,6 +36,8 @@ public class OrderServiceImpl implements OrderService {
     private final OrderStatusRepository orderStatusRepository;
     private final CouponRepository couponRepository;
     private final CartItemRepository cartItemRepository;
+    private final PricingService pricingService;
+    private final InventoryService inventoryService;
 
     @Override
     @Transactional(readOnly = true)
@@ -115,17 +119,19 @@ public class OrderServiceImpl implements OrderService {
             Product product = productRepository.findById(item.getProductId())
                     .orElseThrow(() -> new RuntimeException("Product not found: " + item.getProductId()));
             int qty = item.getQuantity() == null ? 1 : item.getQuantity();
+            double unitPrice = pricingService.currentPrice(product);   // giá sau giảm theo độ tươi, tính trước khi trừ lô
+            inventoryService.consume(product.getId(), qty);            // trừ theo lô (FEFO), lỗi nếu hàng tươi không đủ
             if (productRepository.decreaseStock(product.getId(), qty) == 0) {
                 throw new IllegalArgumentException("Not enough stock for: " + product.getName());
             }
-            double lineTotal = product.getPrice() * qty;
+            double lineTotal = unitPrice * qty;
             subtotal += lineTotal;
 
             items.add(SaleOrderProduct.builder()
                     .order(order)
                     .product(product)
                     .quantity(qty)
-                    .price(product.getPrice())
+                    .price(unitPrice)
                     .build());
         }
         order.setItems(items);
@@ -255,6 +261,7 @@ public class OrderServiceImpl implements OrderService {
     private void restoreStock(SaleOrder order) {
         for (SaleOrderProduct it : order.getItems()) {
             productRepository.increaseStock(it.getProduct().getId(), it.getQuantity());
+            inventoryService.restore(it.getProduct().getId(), it.getQuantity());
         }
     }
 

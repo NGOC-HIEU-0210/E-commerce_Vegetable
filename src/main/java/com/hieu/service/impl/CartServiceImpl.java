@@ -7,12 +7,15 @@ import com.hieu.payload.dto.CartItemDto;
 import com.hieu.repository.CartItemRepository;
 import com.hieu.repository.ProductRepository;
 import com.hieu.repository.UserRepository;
+import com.hieu.service.PricingService;
 import com.hieu.service.CartService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class CartServiceImpl implements CartService {
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final PricingService pricingService;
 
     @Override
     @Transactional(readOnly = true)
@@ -82,15 +86,22 @@ public class CartServiceImpl implements CartService {
 
 
     private CartDto build(Long userId) {
-        List<CartItemDto> items = cartItemRepository.findByUserIdOrderByIdAsc(userId).stream()
+        List<CartItem> cartItems = cartItemRepository.findByUserIdOrderByIdAsc(userId);
+        Map<Long, LocalDate> expiry = pricingService.earliestExpiry(
+                cartItems.stream().map(ci -> ci.getProduct().getId()).toList());
+        List<CartItemDto> items = cartItems.stream()
                 .map(ci -> {
                     Product p = ci.getProduct();
-                    double price = p.getPrice() == null ? 0 : p.getPrice();
+                    LocalDate exp = expiry.get(p.getId());
+                    double price = pricingService.priceFor(p, exp);
+                    int percent = pricingService.discountPercent(p.getShelfLifeDays(), exp);
                     return CartItemDto.builder()
                             .productId(p.getId())
                             .productName(p.getName())
                             .productImage(p.getImage())
                             .price(price)
+                            .originalPrice(p.getPrice() == null ? 0 : p.getPrice())
+                            .discountPercent(percent)
                             .quantity(ci.getQuantity())
                             .subtotal(price * ci.getQuantity())
                             .available(Boolean.TRUE.equals(p.getActive()))
