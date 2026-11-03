@@ -1,6 +1,8 @@
 package com.hieu.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.hieu.enums.PaymentMethod;
+import com.hieu.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -59,6 +61,19 @@ public class SaleOrder {
 
     @Column(length = 50)
     private String couponCode;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private PaymentMethod paymentMethod;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private PaymentStatus paymentStatus;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @Builder.Default
+    private List<OrderTracking> trackings = new ArrayList<>();
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore

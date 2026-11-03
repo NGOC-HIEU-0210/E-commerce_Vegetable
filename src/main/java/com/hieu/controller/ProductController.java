@@ -14,8 +14,6 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
@@ -25,38 +23,38 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    @Operation(summary = "Lấy tất cả sản phẩm")
-    public ApiResponse<List<ProductDto>> findAll() {
-        return ApiResponse.success(productService.findAll());
-    }
-
-    @GetMapping("/paged")
-    @Operation(summary = "Lấy sản phẩm phân trang")
-    public ApiResponse<PageResponse<ProductDto>> findPaged(
+    @Operation(summary = "Admin: Lấy tất cả sản phẩm, phân trang")
+    public ApiResponse<PageResponse<ProductDto>> findAll(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.success(productService.findPaged(
-                PageRequest.of(page, size, Sort.by("id").descending())));
+            @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.success(productService.findPaged(pageOf(page, size)));
     }
 
     @GetMapping("/latest")
-    @Operation(summary = "Lấy sản phẩm mới nhất")
-    public ApiResponse<List<ProductDto>> latest(@RequestParam(defaultValue = "8") int limit) {
-        return ApiResponse.success(productService.findLatest(limit));
+    @Operation(summary = "Lấy sản phẩm mới nhất, phân trang")
+    public ApiResponse<PageResponse<ProductDto>> latest(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size) {
+        return ApiResponse.success(productService.findLatest(pageOf(page, size)));
     }
 
     @GetMapping("/search")
-    @Operation(summary = "Tìm kiếm sản phẩm theo tên và danh mục")
-    public ApiResponse<List<ProductDto>> search(
+    @Operation(summary = "Tìm kiếm sản phẩm theo tên và danh mục, phân trang")
+    public ApiResponse<PageResponse<ProductDto>> search(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Long categoryId) {
-        return ApiResponse.success(productService.search(keyword, categoryId));
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.success(productService.search(keyword, categoryId, pageOf(page, size)));
     }
 
     @GetMapping("/category/{categoryId}")
-    @Operation(summary = "Lấy sản phẩm theo danh mục")
-    public ApiResponse<List<ProductDto>> byCategory(@PathVariable Long categoryId) {
-        return ApiResponse.success(productService.findByCategory(categoryId));
+    @Operation(summary = "Lấy sản phẩm theo danh mục, phân trang")
+    public ApiResponse<PageResponse<ProductDto>> byCategory(
+            @PathVariable Long categoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.success(productService.findByCategory(categoryId, pageOf(page, size)));
     }
 
     @GetMapping("/{id}")
@@ -103,5 +101,9 @@ public class ProductController {
     public ApiResponse<Void> delete(@PathVariable Long id) {
         productService.delete(id);
         return ApiResponse.success("Product deleted", null);
+    }
+
+    private PageRequest pageOf(int page, int size) {
+        return PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 50), Sort.by("id").descending());
     }
 }

@@ -1,16 +1,19 @@
 package com.hieu.controller;
 
+import com.hieu.config.CurrentUser;
 import com.hieu.payload.dto.CategoryDto;
 import com.hieu.payload.response.ApiResponse;
+import com.hieu.payload.response.PageResponse;
 import com.hieu.service.CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/categories")
@@ -19,29 +22,32 @@ import java.util.List;
 public class CategoryController {
 
     private final CategoryService categoryService;
+    private final CurrentUser currentUser;
 
     @GetMapping
-    @Operation(summary = "Lấy tất cả danh mục")
-    public ApiResponse<List<CategoryDto>> findAll() {
-        return ApiResponse.success(categoryService.findAll());
+    @Operation(summary = "Admin: lấy tất cả danh mục (kể cả đang ẩn), phân trang, tìm theo tên")
+    public ApiResponse<PageResponse<CategoryDto>> findAll(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.success(categoryService.findPaged(keyword, pageOf(page, size)));
     }
 
     @GetMapping("/active")
-    @Operation(summary = "Lấy danh mục đang hoạt động")
-    public ApiResponse<List<CategoryDto>> findActive() {
-        return ApiResponse.success(categoryService.findActive());
-    }
-
-    @GetMapping("/search")
-    @Operation(summary = "Tìm kiếm danh mục theo tên")
-    public ApiResponse<List<CategoryDto>> search(@RequestParam(required = false) String keyword) {
-        return ApiResponse.success(categoryService.search(keyword));
+    @Operation(summary = "Khách: danh mục đang hoạt động, tìm theo tên, phân trang")
+    public ApiResponse<PageResponse<CategoryDto>> findActive(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.success(categoryService.findActivePaged(keyword, pageOf(page, size)));
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Lấy danh mục theo id")
-    public ApiResponse<CategoryDto> findById(@PathVariable Long id) {
-        return ApiResponse.success(categoryService.findById(id));
+    @Operation(summary = "Lấy danh mục theo id (khách chỉ thấy danh mục đang hoạt động)")
+    public ApiResponse<CategoryDto> findById(Authentication auth, @PathVariable Long id) {
+        return ApiResponse.success(currentUser.isAdmin(auth)
+                ? categoryService.findById(id)
+                : categoryService.findPublicById(id));
     }
 
     @PostMapping
@@ -68,5 +74,9 @@ public class CategoryController {
     public ApiResponse<Void> delete(@PathVariable Long id) {
         categoryService.delete(id);
         return ApiResponse.success("Category deleted", null);
+    }
+
+    private PageRequest pageOf(int page, int size) {
+        return PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 50), Sort.by("id").descending());
     }
 }

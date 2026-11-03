@@ -18,7 +18,7 @@ public class CheckoutRequest {
     private Long userId;
     private Long statusId;
     private List<CheckoutItem> items;
-
+    private String paymentMethod;   // COD | BANK_TRANSFER (mặc định COD)
     @Getter
     @Setter
     public static class CheckoutItem {

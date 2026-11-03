@@ -1,5 +1,6 @@
 package com.hieu.controller;
 
+import com.hieu.config.CurrentUser;
 import com.hieu.payload.dto.UserDto;
 import com.hieu.payload.request.RegisterRequest;
 import com.hieu.payload.response.ApiResponse;
@@ -11,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -26,7 +28,7 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
-
+    private final CurrentUser currentUser;
     @GetMapping
     @Operation(summary = "Lấy danh sách người dùng")
     public ApiResponse<List<UserDto>> findAll() {
@@ -79,11 +81,12 @@ public class UserController {
         return ApiResponse.success("User updated", userService.update(id, dto));
     }
 
-    @PatchMapping("/{id}/status")
-    @Operation(summary = "Bật/tắt trạng thái người dùng")
-    public ApiResponse<UserDto> updateStatus(@PathVariable Long id, @RequestParam Boolean status) {
-        return ApiResponse.success("Status updated", userService.updateStatus(id, status));
-    }
+
+//    @PatchMapping("/{id}/status")
+//    @Operation(summary = "Bật/tắt trạng thái người dùng")
+//    public ApiResponse<UserDto> updateStatus(@PathVariable Long id, @RequestParam Boolean status) {
+//        return ApiResponse.success("Status updated", userService.updateStatus(id, status));
+//    }
 
     @PostMapping(value = "/{id}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Cập nhật ảnh đại diện")
@@ -92,9 +95,41 @@ public class UserController {
         return ApiResponse.success("Avatar updated", userService.uploadAvatar(id, file));
     }
 
+//    @DeleteMapping("/{id}")
+//    @Operation(summary = "Xóa người dùng")
+//    public ApiResponse<Void> delete(@PathVariable Long id) {
+//        userService.delete(id);
+//        return ApiResponse.success("User deleted", null);
+//    }
+    @PutMapping("/me")
+    @Operation(summary = "Cập nhật hồ sơ của chính mình")
+    public ApiResponse<UserDto> updateMe(Authentication auth, @RequestBody UserDto dto) {
+        dto.setStatus(null);   // không cho tự đổi trạng thái tài khoản
+        return ApiResponse.success("Profile updated", userService.update(currentUser.id(auth), dto));
+    }
+
+    @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Cập nhật ảnh đại diện của chính mình")
+    public ApiResponse<UserDto> uploadMyAvatar(Authentication auth, @RequestPart("file") MultipartFile file) {
+        return ApiResponse.success("Avatar updated", userService.uploadAvatar(currentUser.id(auth), file));
+    }
+
+    @PatchMapping("/{id}/status")
+    @Operation(summary = "Bật/tắt trạng thái người dùng (admin)")
+    public ApiResponse<UserDto> updateStatus(Authentication auth, @PathVariable Long id,
+                                             @RequestParam Boolean status) {
+        if (Boolean.FALSE.equals(status) && id.equals(currentUser.id(auth))) {
+            throw new IllegalArgumentException("You cannot disable your own account");
+        }
+        return ApiResponse.success("Status updated", userService.updateStatus(id, status));
+    }
+
     @DeleteMapping("/{id}")
-    @Operation(summary = "Xóa người dùng")
-    public ApiResponse<Void> delete(@PathVariable Long id) {
+    @Operation(summary = "Xóa người dùng (admin)")
+    public ApiResponse<Void> delete(Authentication auth, @PathVariable Long id) {
+        if (id.equals(currentUser.id(auth))) {
+            throw new IllegalArgumentException("You cannot delete your own account");
+        }
         userService.delete(id);
         return ApiResponse.success("User deleted", null);
     }

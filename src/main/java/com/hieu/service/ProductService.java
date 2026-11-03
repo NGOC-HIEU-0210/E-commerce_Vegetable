@@ -6,21 +6,17 @@ import com.hieu.payload.response.PageResponse;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-
 public interface ProductService {
-
-    List<ProductDto> findAll();
 
     PageResponse<ProductDto> findPaged(Pageable pageable);
 
+    PageResponse<ProductDto> findByCategory(Long categoryId, Pageable pageable);
+
+    PageResponse<ProductDto> search(String keyword, Long categoryId, Pageable pageable);
+
+    PageResponse<ProductDto> findLatest(Pageable pageable);
+
     ProductDto findById(Long id);
-
-    List<ProductDto> findByCategory(Long categoryId);
-
-    List<ProductDto> search(String keyword, Long categoryId);
-
-    List<ProductDto> findLatest(int limit);
 
     ProductDto create(ProductDto dto);
 

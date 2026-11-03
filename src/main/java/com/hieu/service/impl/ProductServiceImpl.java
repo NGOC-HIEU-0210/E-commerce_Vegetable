@@ -13,13 +13,12 @@ import com.hieu.repository.ProductRepository;
 import com.hieu.service.ProductService;
 import com.hieu.service.UploadService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -32,43 +31,35 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProductDto> findAll() {
-        return productRepository.findAll().stream().map(ProductMapper::toDto).toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public PageResponse<ProductDto> findPaged(Pageable pageable) {
         return PageResponse.of(productRepository.findAll(pageable), ProductMapper::toDto);
     }
 
     @Override
     @Transactional(readOnly = true)
+    public PageResponse<ProductDto> findByCategory(Long categoryId, Pageable pageable) {
+        return PageResponse.of(productRepository.findByCategoryIdAndActiveTrue(categoryId, pageable), ProductMapper::toDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ProductDto> search(String keyword, Long categoryId, Pageable pageable) {
+        Page<Product> result = (categoryId == null)
+                ? productRepository.search(keyword == null ? "" : keyword, pageable)
+                : productRepository.searchByCategory(categoryId, keyword == null ? "" : keyword, pageable);
+        return PageResponse.of(result, ProductMapper::toDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ProductDto> findLatest(Pageable pageable) {
+        return PageResponse.of(productRepository.findLatest(PageRequest.of(pageable.getPageNumber(), pageable.getPageSize())), ProductMapper::toDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public ProductDto findById(Long id) {
         return ProductMapper.toDto(getProduct(id));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ProductDto> findByCategory(Long categoryId) {
-        return productRepository.findByCategoryIdAndActiveTrue(categoryId).stream()
-                .map(ProductMapper::toDto).toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ProductDto> search(String keyword, Long categoryId) {
-        List<Product> result = (categoryId == null)
-                ? productRepository.search(keyword == null ? "" : keyword)
-                : productRepository.searchByCategory(categoryId, keyword == null ? "" : keyword);
-        return result.stream().map(ProductMapper::toDto).toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ProductDto> findLatest(int limit) {
-        return productRepository.findLatest(PageRequest.of(0, limit)).stream()
-                .map(ProductMapper::toDto).toList();
     }
 
     @Override

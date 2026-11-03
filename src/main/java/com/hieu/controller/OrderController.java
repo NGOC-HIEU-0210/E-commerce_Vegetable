@@ -1,7 +1,9 @@
 package com.hieu.controller;
 
 import com.hieu.config.CurrentUser;
+import com.hieu.enums.PaymentStatus;
 import com.hieu.payload.dto.OrderDto;
+import com.hieu.payload.dto.OrderTrackingDto;
 import com.hieu.payload.request.CheckoutRequest;
 import com.hieu.payload.response.ApiResponse;
 import com.hieu.payload.response.PageResponse;
@@ -105,5 +107,33 @@ public class OrderController {
     public ApiResponse<Void> delete(@PathVariable Long id) {
         orderService.delete(id);
         return ApiResponse.success("Order deleted", null);
+    }
+
+    @PostMapping("/checkout-cart")
+    @Operation(summary = "Đặt hàng từ giỏ hàng của người dùng đang đăng nhập")
+    public ApiResponse<OrderDto> checkoutFromCart(Authentication auth, @RequestBody CheckoutRequest request) {
+        return ApiResponse.success("Order placed",
+                orderService.checkoutFromCart(currentUser.id(auth), request));
+    }
+
+    @PatchMapping("/{id}/cancel")
+    @Operation(summary = "Khách huỷ đơn của mình (chỉ khi đơn đang PENDING và chưa thanh toán)")
+    public ApiResponse<OrderDto> cancel(Authentication auth, @PathVariable Long id) {
+        return ApiResponse.success("Order cancelled", orderService.cancelByUser(id, currentUser.id(auth)));
+    }
+
+    @GetMapping("/{id}/tracking")
+    @Operation(summary = "Lịch sử trạng thái đơn hàng (chủ đơn hoặc admin)")
+    public ApiResponse<List<OrderTrackingDto>> tracking(Authentication auth, @PathVariable Long id) {
+        currentUser.requireOwnerOrAdmin(auth, orderService.findById(id).getUserId());
+        return ApiResponse.success(orderService.findTracking(id));
+    }
+
+    @PatchMapping("/{id}/payment-status")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Operation(summary = "Cập nhật trạng thái thanh toán (chỉ admin)")
+    public ApiResponse<OrderDto> updatePaymentStatus(@PathVariable Long id,
+                                                     @RequestParam PaymentStatus paymentStatus) {
+        return ApiResponse.success("Payment status updated", orderService.updatePaymentStatus(id, paymentStatus));
     }
 }

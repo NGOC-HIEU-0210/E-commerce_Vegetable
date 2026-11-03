@@ -1,9 +1,11 @@
 package com.hieu.mapper;
 
+import com.hieu.model.OrderTracking;
 import com.hieu.model.SaleOrder;
 import com.hieu.model.SaleOrderProduct;
 import com.hieu.payload.dto.OrderDto;
 import com.hieu.payload.dto.OrderItemDto;
+import com.hieu.payload.dto.OrderTrackingDto;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -32,6 +34,8 @@ public final class OrderMapper {
                 .status(order.getStatus() == null ? null : order.getStatus().getName())
                 .statusId(order.getStatus() == null ? null : order.getStatus().getId())
                 .couponCode(order.getCouponCode())
+                .paymentMethod(order.getPaymentMethod() == null ? null : order.getPaymentMethod().name())
+                .paymentStatus(order.getPaymentStatus() == null ? null : order.getPaymentStatus().name())
                 .userId(order.getUser() == null ? null : order.getUser().getId())
                 .items(order.getItems() == null ? List.of()
                         : order.getItems().stream().map(OrderMapper::toItemDto).toList())
@@ -51,6 +55,13 @@ public final class OrderMapper {
                 .quantity(qty)
                 .price(price)
                 .subtotal(price == null || qty == null ? null : price * qty)
+                .build();
+    }
+    public static OrderTrackingDto toTrackingDto(OrderTracking t) {
+        return OrderTrackingDto.builder()
+                .status(t.getStatus())
+                .note(t.getNote())
+                .time(t.getCreatedDate() == null ? null : t.getCreatedDate().format(FORMATTER))
                 .build();
     }
 }

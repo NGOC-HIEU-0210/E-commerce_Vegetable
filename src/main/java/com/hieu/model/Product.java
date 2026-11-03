@@ -38,6 +38,8 @@ public class Product {
 
     private LocalDateTime updatedDate;
 
+    private Integer stock;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     @JsonIgnore

@@ -29,4 +29,6 @@ public class OrderDto {
     private String couponCode;
     private Long userId;
     private List<OrderItemDto> items;
+    private String paymentMethod;
+    private String paymentStatus;
 }

@@ -1,6 +1,8 @@
 package com.hieu.service;
 
 import com.hieu.payload.dto.CategoryDto;
+import com.hieu.payload.response.PageResponse;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -22,4 +24,9 @@ public interface CategoryService {
     void delete(Long id);
 
     List<CategoryDto> search(String keyword);
+    PageResponse<CategoryDto> findPaged(String keyword, Pageable pageable);
+
+    PageResponse<CategoryDto> findActivePaged(String keyword, Pageable pageable);
+
+    CategoryDto findPublicById(Long id);
 }

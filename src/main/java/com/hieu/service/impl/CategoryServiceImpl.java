@@ -3,10 +3,12 @@ package com.hieu.service.impl;
 import com.hieu.mapper.CategoryMapper;
 import com.hieu.model.Category;
 import com.hieu.payload.dto.CategoryDto;
+import com.hieu.payload.response.PageResponse;
 import com.hieu.repository.CategoryRepository;
 import com.hieu.service.CategoryService;
 import com.hieu.service.UploadService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -101,5 +103,32 @@ public class CategoryServiceImpl implements CategoryService {
     private Category getCategory(Long id) {
         return categoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Category not found: " + id));
+    }
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<CategoryDto> findPaged(String keyword, Pageable pageable) {
+        return PageResponse.of(categoryRepository.searchAll(normalize(keyword), pageable),
+                CategoryMapper::toSummary);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<CategoryDto> findActivePaged(String keyword, Pageable pageable) {
+        return PageResponse.of(categoryRepository.searchActive(normalize(keyword), pageable),
+                CategoryMapper::toSummary);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CategoryDto findPublicById(Long id) {
+        Category category = getCategory(id);
+        if (!Boolean.TRUE.equals(category.getActive())) {
+            throw new RuntimeException("Category not found: " + id);
+        }
+        return CategoryMapper.toPublicDto(category);
+    }
+
+    private String normalize(String keyword) {
+        return keyword == null ? "" : keyword.trim();
     }
 }

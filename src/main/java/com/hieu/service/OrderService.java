@@ -1,6 +1,8 @@
 package com.hieu.service;
 
+import com.hieu.enums.PaymentStatus;
 import com.hieu.payload.dto.OrderDto;
+import com.hieu.payload.dto.OrderTrackingDto;
 import com.hieu.payload.request.CheckoutRequest;
 import com.hieu.payload.response.PageResponse;
 import org.springframework.data.domain.Pageable;
@@ -26,4 +28,12 @@ public interface OrderService {
     OrderDto updateStatus(Long id, Long statusId);
 
     void delete(Long id);
+
+    OrderDto checkoutFromCart(Long userId, CheckoutRequest request);
+
+    OrderDto cancelByUser(Long id, Long userId);
+
+    OrderDto updatePaymentStatus(Long id, PaymentStatus paymentStatus);
+
+    List<OrderTrackingDto> findTracking(Long id);
 }
