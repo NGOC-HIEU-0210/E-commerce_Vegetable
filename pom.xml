@@ -84,6 +84,17 @@
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
+
+
+    <dependency>
+      <groupId>com.bucket4j</groupId>
+      <artifactId>bucket4j_jdk17-core</artifactId>
+      <version>8.14.0</version> <!-- kiểm tra bản mới nhất trên Maven Central -->
+    </dependency>
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId> <!-- Spring Boot đã quản lý version -->
+    </dependency>
   </dependencies>
 
   <build>
