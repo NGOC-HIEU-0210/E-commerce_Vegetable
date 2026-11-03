@@ -13,6 +13,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -42,11 +43,12 @@ public class UserController {
 
     @GetMapping("/me")
     @Operation(summary = "Lấy thông tin người dùng đang đăng nhập")
-    public ApiResponse<UserDto> me(@AuthenticationPrincipal com.hieu.model.User user) {
-        if (user == null) {
+    public ApiResponse<UserDto> me(@AuthenticationPrincipal Jwt jwt) {
+        if (jwt == null) {
             throw new RuntimeException("Not authenticated");
         }
-        return ApiResponse.success(userService.findByUsername(user.getUsername()));
+        return ApiResponse.success(userService.findByUsername(
+                jwt.getClaimAsString("preferred_username")));
     }
 
     @GetMapping("/search")

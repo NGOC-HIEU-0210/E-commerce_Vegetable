@@ -1,5 +1,6 @@
 package com.hieu.controller;
 
+import com.hieu.config.CurrentUser;
 import com.hieu.payload.dto.OrderDto;
 import com.hieu.payload.request.CheckoutRequest;
 import com.hieu.payload.response.ApiResponse;
@@ -10,6 +11,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +24,7 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+    private final CurrentUser currentUser;
 
     @GetMapping
     @Operation(summary = "Lấy tất cả đơn hàng")
@@ -48,38 +52,56 @@ public class OrderController {
                 PageRequest.of(page, size, Sort.by("id").descending())));
     }
 
+    @GetMapping("/me")
+    @Operation(summary = "Lấy đơn hàng của người dùng đang đăng nhập")
+    public ApiResponse<List<OrderDto>> findMine(Authentication auth) {
+        return ApiResponse.success(orderService.findByUser(currentUser.id(auth)));
+    }
+
     @GetMapping("/user/{userId}")
-    @Operation(summary = "Lấy đơn hàng theo người dùng")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Operation(summary = "Lấy đơn hàng theo người dùng (chỉ admin)")
     public ApiResponse<List<OrderDto>> findByUser(@PathVariable Long userId) {
         return ApiResponse.success(orderService.findByUser(userId));
     }
 
     @GetMapping("/code/{orderCode}")
-    @Operation(summary = "Lấy đơn hàng theo mã đơn")
-    public ApiResponse<OrderDto> findByCode(@PathVariable String orderCode) {
-        return ApiResponse.success(orderService.findByCode(orderCode));
+    @Operation(summary = "Lấy đơn hàng theo mã đơn (chủ đơn hoặc admin)")
+    public ApiResponse<OrderDto> findByCode(Authentication auth, @PathVariable String orderCode) {
+        OrderDto order = orderService.findByCode(orderCode);
+        currentUser.requireOwnerOrAdmin(auth, order.getUserId());
+        return ApiResponse.success(order);
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Lấy đơn hàng theo id")
-    public ApiResponse<OrderDto> findById(@PathVariable Long id) {
-        return ApiResponse.success(orderService.findById(id));
+    @Operation(summary = "Lấy đơn hàng theo id (chủ đơn hoặc admin)")
+    public ApiResponse<OrderDto> findById(Authentication auth, @PathVariable Long id) {
+        OrderDto order = orderService.findById(id);
+        currentUser.requireOwnerOrAdmin(auth, order.getUserId());
+        return ApiResponse.success(order);
     }
 
     @PostMapping("/checkout")
     @Operation(summary = "Đặt hàng (checkout) từ danh sách sản phẩm")
-    public ApiResponse<OrderDto> checkout(@RequestBody CheckoutRequest request) {
+    public ApiResponse<OrderDto> checkout(Authentication auth, @RequestBody CheckoutRequest request) {
+
+        request.setUserId(currentUser.id(auth));
+        if (!currentUser.isAdmin(auth)) {
+            request.setStatusId(null);
+        }
         return ApiResponse.success("Order placed", orderService.checkout(request));
     }
 
     @PatchMapping("/{id}/status")
-    @Operation(summary = "Cập nhật trạng thái đơn hàng")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Operation(summary = "Cập nhật trạng thái đơn hàng (chỉ admin)")
     public ApiResponse<OrderDto> updateStatus(@PathVariable Long id, @RequestParam Long statusId) {
         return ApiResponse.success("Status updated", orderService.updateStatus(id, statusId));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Xóa đơn hàng")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Operation(summary = "Xóa đơn hàng (chỉ admin)")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         orderService.delete(id);
         return ApiResponse.success("Order deleted", null);

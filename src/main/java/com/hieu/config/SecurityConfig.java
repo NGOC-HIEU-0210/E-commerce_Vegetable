@@ -17,7 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final KeycloakJwtConverter keycloakJwtConverter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -29,12 +29,26 @@ public class SecurityConfig {
                         .requestMatchers("/", "/v3/api-docs/**", "/swagger-ui/**",
                                 "/swagger-ui.html", "/error", "/UploadFiles/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/auth/signup", "/api/auth/login",
-                                "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/**").permitAll()
+
+
                         .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/coupons", "/api/coupons/paged").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/users", "/api/users/paged", "/api/users/search").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/orders", "/api/orders/paged", "/api/orders/search").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/categories/**", "/api/coupons").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/categories/**", "/api/coupons/**").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/categories/**", "/api/coupons/**").hasAuthority("ADMIN")
+
+
+                        .requestMatchers("/api/users/me").authenticated()
+
+
+                        .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/categories/**", "/api/coupons/active").permitAll()
+
                         .anyRequest().authenticated())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(keycloakJwtConverter)));
 
         return http.build();
     }
