@@ -9,7 +9,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "tbl_product")
+@Table(name = "tbl_product", indexes = {
+        @Index(name = "idx_product_active_created", columnList = "active, createdDate")
+})
 @Getter
 @Setter
 @NoArgsConstructor

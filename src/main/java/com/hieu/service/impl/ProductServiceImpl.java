@@ -26,7 +26,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 @Service
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
@@ -60,6 +61,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "productsLatest", key = "#p0.pageNumber + '-' + #p0.pageSize")
     public PageResponse<ProductDto> findLatest(Pageable pageable) {
         return toPage(productRepository.findLatest(PageRequest.of(pageable.getPageNumber(), pageable.getPageSize())));
     }
@@ -72,6 +74,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable("productsRescue")
     public List<ProductDto> findRescue() {
         List<Product> products = productRepository.findWithSellableBatches(
                 com.hieu.enums.BatchStatus.ACTIVE, PricingService.today());
@@ -85,6 +88,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"productsLatest", "productsRescue"}, allEntries = true)
     public ProductDto create(ProductDto dto) {
         Category category = resolveCategory(dto.getCategoryId());
         Product product = Product.builder()
@@ -101,6 +105,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"productsLatest", "productsRescue"}, allEntries = true)
     public ProductDto update(Long id, ProductDto dto) {
         Product product = getProduct(id);
         if (dto.getName() != null) product.setName(dto.getName());
@@ -115,6 +120,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"productsLatest", "productsRescue"}, allEntries = true)
     public ProductDto setImage(Long id, MultipartFile image) {
         Product product = getProduct(id);
         String path = uploadService.save(image, "Product");
@@ -126,6 +132,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"productsLatest", "productsRescue"}, allEntries = true)
     public void delete(Long id) {
         if (!productRepository.existsById(id)) {
             throw new RuntimeException("Product not found: " + id);
@@ -135,6 +142,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"productsLatest", "productsRescue"}, allEntries = true)
     public ProductImageDto addImage(Long productId, MultipartFile file) {
         Product product = getProduct(productId);
         String path = uploadService.save(file, "Product");
@@ -144,6 +152,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"productsLatest", "productsRescue"}, allEntries = true)
     public void deleteImage(Long imageId) {
         if (!productImageRepository.existsById(imageId)) {
             throw new RuntimeException("Product image not found: " + imageId);

@@ -1,6 +1,8 @@
+
 package com.hieu.config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -19,60 +21,106 @@ public class SecurityConfig {
 
     private final KeycloakJwtConverter keycloakJwtConverter;
 
+    @Value("${app.rate-limit.enabled:true}")
+    private boolean rateLimitEnabled;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
+
+        if (rateLimitEnabled) {
+            http.addFilterBefore(
+                    new RateLimitFilter(),
+                    UsernamePasswordAuthenticationFilter.class
+            );
+        }
+
         http
-                .addFilterBefore(new RateLimitFilter(), UsernamePasswordAuthenticationFilter.class)
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> {})
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(sm ->
+                        sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .authorizeHttpRequests(auth -> auth
-                        // ---- Công khai ----
-                        .requestMatchers("/", "/v3/api-docs/**", "/swagger-ui/**",
-                                "/swagger-ui.html", "/error", "/UploadFiles/**").permitAll()
+
+                        // Công khai
+                        .requestMatchers(
+                                "/",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/error",
+                                "/UploadFiles/**"
+                        ).permitAll()
+
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // ---- Chỉ admin: dashboard, vai trò, trạng thái đơn ----
+                        // Admin
                         .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
                         .requestMatchers("/api/roles", "/api/roles/**").hasAuthority("ADMIN")
                         .requestMatchers("/api/order-statuses", "/api/order-statuses/**").hasAuthority("ADMIN")
 
-                        // ---- Người dùng: tự quản lý hồ sơ, còn lại chỉ admin ----
+                        // User
                         .requestMatchers("/api/users/me", "/api/users/me/**").authenticated()
                         .requestMatchers("/api/users", "/api/users/**").hasAuthority("ADMIN")
 
-                        // ---- Danh mục ----
-                        .requestMatchers(HttpMethod.GET, "/api/categories", "/api/categories/paged",
-                                "/api/categories/search").hasAuthority("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/categories/active", "/api/categories/{id}").permitAll()
-                        .requestMatchers("/api/categories", "/api/categories/**").hasAuthority("ADMIN")
+                        // Categories
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/categories/active",
+                                "/api/categories/{id}"
+                        ).permitAll()
 
-                        // ---- Sản phẩm ----
-                        .requestMatchers(HttpMethod.GET, "/api/products").hasAuthority("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/products/category/{categoryId}", "/api/products/search",
-                                "/api/products/latest", "/api/products/rescue", "/api/products/{id}").permitAll()
-                        .requestMatchers("/api/products", "/api/products/**").hasAuthority("ADMIN")
+                        .requestMatchers("/api/categories", "/api/categories/**")
+                        .hasAuthority("ADMIN")
 
-                        // ---- Mã giảm giá ----
-                        .requestMatchers(HttpMethod.GET, "/api/coupons/active").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/coupons/apply").authenticated()
-                        .requestMatchers("/api/coupons", "/api/coupons/**").hasAuthority("ADMIN")
+                        // Products
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/products/category/{categoryId}",
+                                "/api/products/search",
+                                "/api/products/latest",
+                                "/api/products/rescue",
+                                "/api/products/{id}"
+                        ).permitAll()
 
-                        // ---- Yêu thích: xem số lượt thích công khai, còn lại cần đăng nhập ----
-                        .requestMatchers(HttpMethod.GET, "/api/favourites/count/{productId}").permitAll()
+                        .requestMatchers("/api/products", "/api/products/**")
+                        .hasAuthority("ADMIN")
 
-                        // ---- Đơn hàng: phần của admin; còn lại user (chủ đơn) xử lý trong controller ----
-                        .requestMatchers(HttpMethod.GET, "/api/orders", "/api/orders/paged",
-                                "/api/orders/search", "/api/orders/user/**").hasAuthority("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/orders/*/status",
-                                "/api/orders/*/payment-status").hasAuthority("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/orders/*").hasAuthority("ADMIN")
+                        // Coupons
+                        .requestMatchers(HttpMethod.GET, "/api/coupons/active")
+                        .permitAll()
 
-                        // Còn lại (giỏ hàng, yêu thích, đặt hàng, đơn của mình...) cần đăng nhập
-                        .anyRequest().authenticated())
+                        .requestMatchers(HttpMethod.POST, "/api/coupons/apply")
+                        .authenticated()
+
+                        .requestMatchers("/api/coupons", "/api/coupons/**")
+                        .hasAuthority("ADMIN")
+
+                        // Favourites
+                        .requestMatchers(HttpMethod.GET, "/api/favourites/count/{productId}")
+                        .permitAll()
+
+                        // Orders - Admin
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/orders",
+                                "/api/orders/paged",
+                                "/api/orders/search"
+                        ).hasAuthority("ADMIN")
+
+                        .requestMatchers(HttpMethod.PATCH,
+                                "/api/orders/*/status",
+                                "/api/orders/*/payment-status"
+                        ).hasAuthority("ADMIN")
+
+                        .requestMatchers(HttpMethod.DELETE, "/api/orders/*")
+                        .hasAuthority("ADMIN")
+
+                        // Các API còn lại yêu cầu đăng nhập
+                        .anyRequest().authenticated()
+                )
 
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(keycloakJwtConverter)));
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(keycloakJwtConverter))
+                );
 
         return http.build();
     }
