@@ -1,0 +1,73 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: indmart-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: javaweb34db_btck
+      MYSQL_USER: indmart
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      TZ: Asia/Ho_Chi_Minh
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    # Không publish cổng 3306 ra ngoài; chỉ các container trong mạng nội bộ truy cập được.
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: indmart-keycloak
+    restart: unless-stopped
+    command: ["start", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: mysql
+      KC_DB_URL: jdbc:mysql://mysql:3306/keycloak
+      KC_DB_USERNAME: indmart
+      KC_DB_PASSWORD: ${DB_PASSWORD}
+      # URL public của Keycloak, ví dụ http://IP_VPS:8080 hoặc https://auth.domain.com
+      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL}
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+    volumes:
+      # Đặt file realm export (indmart-realm.json) vào thư mục này để tự import
+      - ./docker/keycloak:/opt/keycloak/data/import:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  app:
+    build: .
+    container_name: indmart-app
+    restart: unless-stopped
+    environment:
+      # Ghi đè cấu hình hard-code trong application.properties (localhost:3306, sslMode=REQUIRED)
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/javaweb34db_btck?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+      SPRING_DATASOURCE_USERNAME: indmart
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      # Phải khớp chính xác claim "iss" trong JWT mà Keycloak cấp
+      KEYCLOAK_ISSUER_URI: ${KEYCLOAK_PUBLIC_URL}/realms/indmart
+      APP_UPLOAD_DIR: /app/UploadFiles
+      TZ: Asia/Ho_Chi_Minh
+    volumes:
+      - ./UploadFiles:/app/UploadFiles
+    ports:
+      - "9090:9090"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql_data:

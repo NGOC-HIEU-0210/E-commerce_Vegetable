@@ -1,0 +1,9 @@
+target/
+.git/
+.idea/
+.mvn/wrapper/maven-wrapper.jar
+*.iml
+.env
+UploadFiles/
+docker/
+docker-compose.yml

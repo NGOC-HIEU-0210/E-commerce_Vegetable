@@ -1,0 +1,85 @@
+{
+  "realm": "indmart",
+  "displayName": "IND MART",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 1800,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "roles": {
+    "realm": [
+      {
+        "name": "ADMIN",
+        "description": "Quản trị viên hệ thống"
+      },
+      {
+        "name": "ROLE_USER",
+        "description": "Khách hàng"
+      },
+      {
+        "name": "ROLE_STAFF",
+        "description": "Nhân viên bán hàng"
+      },
+      {
+        "name": "ROLE_MANAGER",
+        "description": "Quản lý cửa hàng"
+      },
+      {
+        "name": "ROLE_SHIPPER",
+        "description": "Nhân viên giao hàng"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "indmart-web",
+      "name": "IND MART Web / Postman",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "rootUrl": "http://localhost:3000",
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "http://localhost:5173/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000",
+        "http://localhost:5173"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "+"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "enabled": true,
+      "email": "admin@indmart.local",
+      "emailVerified": true,
+      "firstName": "Admin",
+      "lastName": "IndMart",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Admin@123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "ADMIN"
+      ]
+    }
+  ]
+}
