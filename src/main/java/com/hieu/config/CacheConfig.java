@@ -19,6 +19,7 @@ public class CacheConfig {
         manager.setCaffeine(Caffeine.newBuilder()
                 .expireAfterWrite(Duration.ofSeconds(30))
                 .maximumSize(500));
+        
         return manager;
     }
 }
